@@ -39,7 +39,7 @@ services:
       parea-db-setup:
         condition: service_completed_successfully
     environment:
-      JWT_PUBLIC_VERIFICATION_KEY: "${JWT_PUBLIC_VERIFICATION_KEY}"
+      JWT_PUBLIC_VERIFICATION_KEY: "${AUTH_SECRET}"
     env_file:
       - .env.backend.local
       - .env
@@ -108,7 +108,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      AUTH_SECRET: "${JWT_PUBLIC_VERIFICATION_KEY}"
+      AUTH_SECRET: "${AUTH_SECRET}"
     env_file:
       - .env.auth.local
     healthcheck:
