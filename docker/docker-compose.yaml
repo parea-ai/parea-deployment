@@ -4,8 +4,11 @@ volumes:
 services:
   parea-db:
     image: mariadb:latest
-    env_file:
-      - .env.backend.local
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     volumes:
       - data:/var/lib/mysql
     healthcheck:
@@ -20,7 +23,7 @@ services:
       parea-db:
         condition: service_healthy
     env_file:
-      - .env.backend.local  # for testing use local .env file
+      - .env.backend.local
     entrypoint:
       [
         "bash",
@@ -34,12 +37,10 @@ services:
         condition: service_healthy
       parea-db-setup:
         condition: service_completed_successfully
-#    environment:
-#      # ./.env  # for testing use local .env file
     env_file:
-      - .env.backend.local  # for testing use local .env file
+      - .env.backend.local
     ports:
-      - "8000:80"  # this enables the service to be accessed from the host machine via http://localhost:8000
+      - "8000:80"
     healthcheck:
       test: [ "CMD", "curl", "--fail", "http://localhost/" ]
       interval: 30s
@@ -89,7 +90,6 @@ services:
     image: public.ecr.aws/r2b0o0r6/frontend:latest
     ports:
       - "3000:3000"
-#      - "3000:80"
     env_file:
       - .env.frontend.local
     healthcheck:
