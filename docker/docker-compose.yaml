@@ -5,10 +5,10 @@ services:
   parea-db:
     image: mariadb:latest
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: "${DB_HOST}"
+      MYSQL_USER: "${DB_USER}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
     volumes:
       - data:/var/lib/mysql
     healthcheck:
@@ -24,6 +24,7 @@ services:
         condition: service_healthy
     env_file:
       - .env.backend.local
+      - .env
     entrypoint:
       [
         "bash",
@@ -39,6 +40,7 @@ services:
         condition: service_completed_successfully
     env_file:
       - .env.backend.local
+      - .env
     ports:
       - "8000:80"
     healthcheck:
