@@ -38,6 +38,8 @@ services:
         condition: service_healthy
       parea-db-setup:
         condition: service_completed_successfully
+    environment:
+      JWT_PUBLIC_VERIFICATION_KEY: "${JWT_PUBLIC_VERIFICATION_KEY}"
     env_file:
       - .env.backend.local
       - .env
@@ -105,6 +107,8 @@ services:
     image: public.ecr.aws/r2b0o0r6/auth:latest
     ports:
       - "3001:3001"
+    environment:
+      AUTH_SECRET: "${JWT_PUBLIC_VERIFICATION_KEY}"
     env_file:
       - .env.auth.local
     healthcheck:
