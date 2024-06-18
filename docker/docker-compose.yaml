@@ -1,0 +1,114 @@
+version: '3.5'
+volumes:
+  data:
+services:
+  parea-db:
+    image: mariadb:latest
+    env_file:
+      - .env.backend.local
+    volumes:
+      - data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: always
+  parea-db-setup:
+    image: public.ecr.aws/r2b0o0r6/backend:latest
+    depends_on:
+      parea-db:
+        condition: service_healthy
+    env_file:
+      - .env.backend.local  # for testing use local .env file
+    entrypoint:
+      [
+        "bash",
+        "-c",
+        "alembic upgrade head",
+      ]
+  parea-backend:
+    image: public.ecr.aws/r2b0o0r6/backend:latest
+    depends_on:
+      parea-db:
+        condition: service_healthy
+      parea-db-setup:
+        condition: service_completed_successfully
+#    environment:
+#      # ./.env  # for testing use local .env file
+    env_file:
+      - .env.backend.local  # for testing use local .env file
+    ports:
+      - "8000:80"  # this enables the service to be accessed from the host machine via http://localhost:8000
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: always
+  parea-celery-worker:
+    image: public.ecr.aws/r2b0o0r6/backend:latest
+    depends_on:
+      parea-db:
+        condition: service_healthy
+      parea-db-setup:
+        condition: service_completed_successfully
+    env_file:
+      - .env.backend.local
+    entrypoint:
+      [
+        "celery",
+        "-A",
+        "app.worker.celery_app",
+        "worker",
+        "-Q",
+        "celery",
+        "-P",
+        "gevent",
+        "--uid=nobody",
+        "--gid=nogroup",
+      ]
+    healthcheck:
+      test: [ "CMD", "executable" ]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 5s
+    restart: always
+  parea-redis:
+    image: redis:latest
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: always
+  parea-frontend:
+    image: public.ecr.aws/r2b0o0r6/frontend:latest
+    ports:
+      - "3000:3000"
+#      - "3000:80"
+    env_file:
+      - .env.frontend.local
+    healthcheck:
+      test: [ "CMD", "pnpm", "healthcheck" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: always
+  parea-auth:
+    image: public.ecr.aws/r2b0o0r6/auth:latest
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env.auth.local
+    healthcheck:
+      test: [ "CMD", "pnpm", "healthcheck" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: always
