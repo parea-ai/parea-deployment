@@ -1,2 +1,3 @@
 docker/.env.backend.local
 docker/.env.frontend.local
+docker/.env.auth.local
