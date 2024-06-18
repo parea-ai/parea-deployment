@@ -6,13 +6,14 @@ Self-deploying Parea via Docker.
 
 1. Clone repository
 2. Navigate into `docker` directory
-3. Copy `.env.sample` to `.env` and optionally re-generate & update the necessary encryption keys
-4. Copy `.env.backend.local.sample` to `.env.backend.local` and optionally re-generate & update the necessary encryption keys
-5. Copy `.env.frontend.local.sample` to `.env.frontend.local` and fill in the necessary values
-6. Copy `.env.frontend.auth.sample` to `.env.auth.local` and fill in the values to enable SSO provider(s)
-7. Run `docker-compose pull` to pull images
-8. Run `docker-compose up -d` to start the containers
-9. Run `docker-compose down` to stop the containers
+3. Copy `.env.sample` to `.env` and at least fill-in `REACT_APP_SELF_HOST_ORGANIZATION_NAME`
+   - required: fill-in your organization slug into `REACT_APP_SELF_HOST_ORGANIZATION_NAME`
+   - optional: configure your SSO provider
+   - optional: re-generate the auth/JWT secret and any secret to encrypt public keys
+   - optional: update any frontend, auth or backend service ports via updating `FRONTEND_PORT`, `AUTH_PORT` or `BACKEND_PORT`
+4. Run `docker-compose pull` to pull images
+5. Run `docker-compose up -d` to start the containers 
+6. Run `docker-compose down` to stop the containers
 
 ## Updating Parea
 
