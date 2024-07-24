@@ -18,7 +18,7 @@ services:
       retries: 3
     restart: always
   parea-db-setup:
-    image: public.ecr.aws/r2b0o0r6/backend:latest
+    image: public.ecr.aws/parea/backend:latest
     depends_on:
       parea-db:
         condition: service_healthy
@@ -31,7 +31,7 @@ services:
         "alembic upgrade head",
       ]
   parea-backend:
-    image: public.ecr.aws/r2b0o0r6/backend:latest
+    image: public.ecr.aws/parea/backend:latest
     depends_on:
       parea-db:
         condition: service_healthy
@@ -49,7 +49,7 @@ services:
       start_period: 30s
     restart: always
   parea-celery-worker:
-    image: public.ecr.aws/r2b0o0r6/backend:latest
+    image: public.ecr.aws/parea/backend:latest
     depends_on:
       parea-db:
         condition: service_healthy
@@ -89,7 +89,7 @@ services:
       retries: 3
     restart: always
   parea-frontend:
-    image: public.ecr.aws/r2b0o0r6/frontend:latest
+    image: public.ecr.aws/parea/frontend:latest
     ports:
       - "${FRONTEND_PORT}:3000"
     env_file:
@@ -102,7 +102,7 @@ services:
       start_period: 30s
     restart: always
   parea-auth:
-    image: public.ecr.aws/r2b0o0r6/auth:latest
+    image: public.ecr.aws/parea/auth:latest
     ports:
       - "${AUTH_PORT}:3000"
     env_file:
