@@ -1,8 +1,6 @@
 version: '3.5'
 volumes:
   data:
-  pulsardata:
-  pulsarconf:
 networks:
   trace_logs:
     driver: bridge
@@ -118,6 +116,8 @@ services:
       retries: 3
       start_period: 30s
     restart: always
+    networks:
+      - trace_logs
   parea-auth:
     image: public.ecr.aws/parea/auth:latest
     ports:
@@ -155,9 +155,6 @@ services:
     image: apachepulsar/pulsar:3.3.1
     networks:
       - trace_logs
-    volumes:
-      - pulsardata:/pulsar/data
-      - pulsarconf:/pulsar/conf
     command: bin/pulsar standalone
     healthcheck:
       test: [ "CMD", "bin/pulsar-admin", "brokers", "healthcheck" ]
@@ -165,7 +162,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    restart: always
   parea-pulsar-init:
     image: apachepulsar/pulsar:3.3.1
     networks:
@@ -177,9 +173,9 @@ services:
       - PULSAR_ADMIN_URL=http://parea-pulsar:8080
     command: >
       /bin/bash -c "
-        bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL tenants create parea-trace-logs-tenant &&
-        bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL namespaces create parea-trace-logs-tenant/default &&
-        bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL topics create persistent://parea-trace-logs-tenant/default/parea-logs
+        bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL tenants list | grep -q parea-trace-logs-tenant || bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL tenants create parea-trace-logs-tenant &&
+        bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL namespaces list parea-trace-logs-tenant | grep -q default || bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL namespaces create parea-trace-logs-tenant/default &&
+        bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL topics list parea-trace-logs-tenant/default | grep -q parea-logs || bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL topics create persistent://parea-trace-logs-tenant/default/parea-logs
       "
   parea-trace-log-processor:
     image: public.ecr.aws/parea/trace-log-processor:latest
