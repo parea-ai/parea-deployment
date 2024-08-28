@@ -1,6 +1,11 @@
 version: '3.5'
 volumes:
   data:
+  pulsardata:
+  pulsarconf:
+networks:
+  trace_logs:
+    driver: bridge
 services:
   parea-db:
     image: mariadb:latest
@@ -16,6 +21,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - trace_logs
     restart: always
   parea-db-setup:
     image: public.ecr.aws/parea/backend:latest
@@ -24,6 +31,8 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    networks:
+      - trace_logs
     entrypoint:
       [
         "bash",
@@ -32,10 +41,14 @@ services:
       ]
   parea-backend:
     image: public.ecr.aws/parea/backend:latest
+    networks:
+      - trace_logs
     depends_on:
       parea-db:
         condition: service_healthy
       parea-db-setup:
+        condition: service_completed_successfully
+      parea-pulsar-init:
         condition: service_completed_successfully
     env_file:
       - .env
@@ -76,12 +89,16 @@ services:
       timeout: 30s
       retries: 3
       start_period: 5s
+    networks:
+      - trace_logs
     restart: always
   parea-redis:
     image: redis:latest
     command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
     env_file:
       - .env
+    networks:
+      - trace_logs
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
@@ -113,4 +130,78 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    restart: always
+  parea-clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    networks:
+      - trace_logs
+    environment:
+      CLICKHOUSE_DB: "${CLICK_HOUSE_TABLE_NAME}"
+      CLICKHOUSE_USER: "${CLICK_HOUSE_USER}"
+    volumes:
+      - ./clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+        test: [ "CMD", "clickhouse-client", "--query", "SELECT 1" ]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 30s
+    restart: always
+  parea-pulsar:
+    image: apachepulsar/pulsar:3.3.1
+    networks:
+      - trace_logs
+    volumes:
+      - pulsardata:/pulsar/data
+      - pulsarconf:/pulsar/conf
+    command: bin/pulsar standalone
+    healthcheck:
+      test: [ "CMD", "bin/pulsar-admin", "brokers", "healthcheck" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: always
+  parea-pulsar-init:
+    image: apachepulsar/pulsar:3.3.1
+    networks:
+      - trace_logs
+    depends_on:
+      parea-pulsar:
+        condition: service_healthy
+    environment:
+      - PULSAR_ADMIN_URL=http://parea-pulsar:8080
+    command: >
+      /bin/bash -c "
+        bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL tenants create parea-trace-logs-tenant &&
+        bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL namespaces create parea-trace-logs-tenant/default &&
+        bin/pulsar-admin --admin-url $$PULSAR_ADMIN_URL topics create persistent://parea-trace-logs-tenant/default/parea-logs
+      "
+  parea-trace-log-processor:
+    image: public.ecr.aws/parea/trace-log-processor:latest
+    networks:
+      - trace_logs
+    depends_on:
+        parea-db:
+            condition: service_healthy
+        parea-db-setup:
+            condition: service_completed_successfully
+        parea-redis:
+            condition: service_healthy
+        parea-clickhouse:
+          condition: service_healthy
+        parea-pulsar-init:
+          condition: service_completed_successfully
+    env_file:
+        - .env
+    healthcheck:
+        test: [ "CMD", "executable" ]
+        interval: 30s
+        timeout: 30s
+        retries: 3
+        start_period: 5s
     restart: always
