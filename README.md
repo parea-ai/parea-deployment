@@ -11,6 +11,7 @@ Self-deploying Parea via Docker.
    - optional: configure your SSO provider
    - optional: re-generate the auth/JWT secret and any secret to encrypt public keys
    - optional: update any frontend, auth or backend service ports via updating `FRONTEND_PORT`, `AUTH_PORT` or `BACKEND_PORT`
+   - note, don't comment out any environment variables even if empty
 4. Run `docker-compose pull` to pull docker images
 5. Run `docker-compose up -d` to start the containers 
 6. Run `docker-compose down` to stop the containers
